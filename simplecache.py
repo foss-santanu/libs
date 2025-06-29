@@ -17,8 +17,8 @@ class SimpleCache:
         self.__queue__.appendleft((key,timestmp))
         self.__key2timestmp__[key] = timestmp
         
-    def getFromCache(self,key): 
-        value = self.__cache__.get(key, default=False)
+    def getFromCache(self, key): 
+        value = self.__cache__.get(key, False)
         if value: 
             timestmp = self.__key2timestmp__.get(key)
             now = time.time()
@@ -43,4 +43,19 @@ class SimpleCache:
                 except ValueError as e:
                     print(e)
         return None 
+    
+    def remove(self, key): 
+        value = self.__cache__.get(key, defcault=False)
+        if value: 
+            timestmp = self.__key2timestmp__.get(key)
+            del self.__cache__[key]
+            del self.__key2timestmp__[key]
+            try:
+                self.__queue__.remove((key,timestmp))
+            except ValueError as e: 
+                print(e)
                 
+    def clearCache(self): 
+        self.__cache__.clear()
+        self.__key2timestmp__.clear()
+        self.__queue__.clear()
