@@ -17,7 +17,7 @@ class ConfigurationException(Exception):
 ## The Configurator class for in memory representation of config files
 
 from pathlib import Path
-from simplecache import SimpleCache
+from libs.simplecache import SimpleCache
 from typing import Any
 from functools import lru_cache
 import re

@@ -34,11 +34,14 @@ class ActionState(Enum):
 ## Action2Exec executes the user action spec
 ## It stores the execution status, result and any execution error for future reference
 
+import loader_utils
+
 class Action2Exec:
 
     def __init__(self, command: str, args: list) -> None:
         self.__name = command
         ## TODO - retrieve the command object for the command name
+        self.__func2Exec = loader_utils.lookup_function(command, globals())
         self.__args = args
         self.__state = ActionState.INIT
         self.__exec_status = 0
