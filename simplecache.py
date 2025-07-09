@@ -10,6 +10,12 @@ class SimpleCache:
         self.__key2timestmp__ = dict()
         self.__retention__ = retention
         self.__queue__ = collections.deque([],maxsize)
+
+    def __del__(self):
+        self.clearCache()
+        del self.__cache__
+        del self.__key2timestmp__
+        del self.__queue__
         
     def addToCache(self, key, value): 
         self.__cache__[key] = value
@@ -45,7 +51,7 @@ class SimpleCache:
         return None 
     
     def remove(self, key): 
-        value = self.__cache__.get(key, defcault=False)
+        value = self.__cache__.get(key, False)
         if value: 
             timestmp = self.__key2timestmp__.get(key)
             del self.__cache__[key]

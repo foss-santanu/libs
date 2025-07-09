@@ -1,31 +1,17 @@
 ## This code file defines a Configurator class to facilitate config file handling
-
-## Exception class for the Configurator
-
-class ConfigurationException(Exception): 
-    __name__ = "ConfigurationException"
-    
-    def __init__(self, message: str = "Exception raised", lowerexecpt: Exception = None, *args):
-        super().__init__(*args)
-        self.__message__ = message
-        self.__lowerexecpt__ = lowerexecpt
-        
-    def __str__(self): 
-        messg = self.__name__+": "+self.__message__+"\n"+str(self.__lowerexecpt__)
-        return messg
     
 ## The Configurator class for in memory representation of config files
 
 from pathlib import Path
 from libs.simplecache import SimpleCache
+from commons import ConfigurationException, config_loader_registry 
 from typing import Any
-from functools import lru_cache
 import re
 
 class Configurator: 
     __name__ = "Configurator"
     
-    def __init__(self,configFile: str, configDir: str = None, fileTyp: str = "json", sep: str = "."): 
+    def __init__(self, configFile: str, configDir: str = None, fileTyp: str = "native", sep: str = "."): 
         lookForConfig = Path.cwd()
         if configDir: 
             _dir = Path(configDir)
@@ -39,9 +25,17 @@ class Configurator:
         self.__configName__ = configFile.split(".")[0]
         self.__prefixSep__ = sep
         self.__configCache__ = SimpleCache()
+
+    def __del__(self):
+        del self.__configDir__
+        del self.__configs__
+        del self.__configName__
+        del self.__prefixSep__
+        del self.__configCache__
         
-    def __loadConfig(self, config2Load: Path, fileTyp: str = "json"): 
-        pass
+    def __loadConfig(self, config2Load: Path, fileTyp: str = "native"):
+        name, config = config_loader_registry.load_config_file(config2Load, fileTyp)
+        return config 
     
     def __isValidPrefix(self, key: str) -> bool: 
         prefixParts = key.split(self.__prefixSep__)
@@ -53,14 +47,23 @@ class Configurator:
             
         return isValid
     
-    @lru_cache
-    def __configPartFor(self, prefix: str, config: dict) -> Any: 
-        sepIndx = prefix.find(self.__prefixSep__)
-        if sepIndx != -1: 
-            key = prefix[:sepIndx]
-            nxtConfig = config[key]
-            nxtPrefix = prefix[sepIndx+1:]
-            return self.__configPartFor(nxtPrefix, nxtConfig)
-        else: 
-            return config[prefix]
-    
+    def __configPartFor(self, prefix: str) -> Any:
+        configItm = self.__configs__ 
+        prefixes = prefix.split(self.__prefixSep__)
+        for key in prefixes:
+            if not configItm:
+                break
+            configItm = configItm[key]
+        return configItm
+
+    def getConfigValue(self, prefix: str) -> Any:
+        if not self.__isValidPrefix(prefix):
+            raise ConfigurationException(f"Invalid key path {prefix}")
+        configItm = self.__configCache__.getFromCache(prefix)
+        if not configItm:
+            configItm = self.__configPartFor(prefix)
+            if not configItm:
+                raise ConfigurationException(f"Key {prefix} is not mapped to any config")
+            self.__configCache__.addToCache(prefix, configItm)
+        return configItm
+
