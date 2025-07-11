@@ -3,7 +3,7 @@
 ## The Configurator class for in memory representation of config files
 
 from pathlib import Path
-from libs.simplecache import SimpleCache
+from functools import lru_cache
 from commons import ConfigurationException, config_loader_registry 
 from typing import Any
 import re
@@ -24,14 +24,12 @@ class Configurator:
         self.__configs__ = self.__loadConfig(config2Load, fileTyp)
         self.__configName__ = configFile.split(".")[0]
         self.__prefixSep__ = sep
-        self.__configCache__ = SimpleCache()
 
     def __del__(self):
         del self.__configDir__
         del self.__configs__
         del self.__configName__
         del self.__prefixSep__
-        del self.__configCache__
         
     def __loadConfig(self, config2Load: Path, fileTyp: str = "native"):
         name, config = config_loader_registry.load_config_file(config2Load, fileTyp)
@@ -46,24 +44,18 @@ class Configurator:
                 break
             
         return isValid
-    
-    def __configPartFor(self, prefix: str) -> Any:
-        configItm = self.__configs__ 
-        prefixes = prefix.split(self.__prefixSep__)
-        for key in prefixes:
-            if not configItm:
-                break
-            configItm = configItm[key]
-        return configItm
 
+    @lru_cache(maxsize=1000)  ## lru_cache from functools caches config value for a config prefix
     def getConfigValue(self, prefix: str) -> Any:
         if not self.__isValidPrefix(prefix):
             raise ConfigurationException(f"Invalid key path {prefix}")
-        configItm = self.__configCache__.getFromCache(prefix)
-        if not configItm:
-            configItm = self.__configPartFor(prefix)
-            if not configItm:
-                raise ConfigurationException(f"Key {prefix} is not mapped to any config")
-            self.__configCache__.addToCache(prefix, configItm)
+        configItm = self.__configs__
+        prefixes = prefix.split(self.__prefixSep__)
+        try:
+            for key in prefixes:
+                configItm = configItm[key]
+        except Exception as e: 
+            raise ConfigurationException(f"Key {prefix} is not mapped to any config",e)
+        
         return configItm
 

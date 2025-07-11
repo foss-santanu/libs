@@ -1,4 +1,8 @@
-## This code file defines a class to implement simple caching functionalities
+## This code file defines a class to implement simple caching functionalities.
+## This is a simple implementation of LRU cache with limited capacity.
+## When items more than the defined capacity and saved in the cache
+## the least recently used items are automatically removed from the cache.
+## Each time a preiously added cache entery is accessed it is marked as most recently used.
 
 import time
 import collections
@@ -39,6 +43,11 @@ class SimpleCache:
                     del self.__key2timestmp__[key]
                 else: 
                     print(f"Queue index for ({key}, {timestmp}) is: {indx}")
+                    ## update the timestamp and make the entry most recent
+                    now = time.time()
+                    self.__queue__.remove((key,timestmp))
+                    self.__queue__.appendleft((key,now))
+                    self.__key2timestmp__[key] = now
                     return value
             elif timediff > self.__retention__:
                 ## remove cache entry
